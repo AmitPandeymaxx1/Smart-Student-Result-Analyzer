@@ -1,229 +1,23 @@
-import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
-# -------------------- DATA --------------------
-students = []
-columns = (
-    "Roll No", "Name", "Python", "Subject 2",
-    "Subject 3", "Percentage", "Grade", "Status"
+# -------------------- PAGE CONFIG --------------------
+st.set_page_config(
+    page_title="Smart Student Result Analyzer",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# -------------------- MAIN WINDOW --------------------
-root = tk.Tk()
-root.title("Smart Student Result Analyzer")
-root.geometry("1150x720")
-root.minsize(950, 600)
-root.configure(bg="#f1f5f9")
+# -------------------- SESSION STATE --------------------
+if "students" not in st.session_state:
+    st.session_state.students = []   # list of dicts
 
-style = ttk.Style()
-style.theme_use("clam")
-
-style.configure(
-    "Treeview",
-    rowheight=30,
-    font=("Segoe UI", 10),
-    background="white",
-    fieldbackground="white"
-)
-style.configure(
-    "Treeview.Heading",
-    font=("Segoe UI", 10, "bold"),
-    background="#dbeafe",
-    foreground="#1e3a8a",
-    padding=8
-)
-style.configure("TButton", font=("Segoe UI", 10), padding=7)
-
-# -------------------- HEADER --------------------
-header = tk.Frame(root, bg="#1e3a8a", height=85)
-header.pack(fill="x")
-header.pack_propagate(False)
-
-tk.Label(
-    header,
-    text="SMART STUDENT RESULT ANALYZER",
-    font=("Segoe UI", 21, "bold"),
-    bg="#1e3a8a",
-    fg="white"
-).pack(pady=(12, 2))
-
-tk.Label(
-    header,
-    text="Student Records  |  Result Analysis  |  Performance Reports",
-    font=("Segoe UI", 10),
-    bg="#1e3a8a",
-    fg="#dbeafe"
-).pack()
-
-# -------------------- DASHBOARD --------------------
-dashboard = tk.Frame(root, bg="#f1f5f9")
-dashboard.pack(fill="x", padx=15, pady=12)
-
-def create_card(parent, title, color):
-    card = tk.Frame(parent, bg="white", bd=1, relief="solid")
-    card.pack(side="left", fill="x", expand=True, padx=5)
-
-    tk.Label(
-        card, text=title, bg="white", fg="#64748b",
-        font=("Segoe UI", 10)
-    ).pack(pady=(10, 2))
-
-    value = tk.Label(
-        card, text="0", bg="white", fg=color,
-        font=("Segoe UI", 19, "bold")
-    )
-    value.pack(pady=(0, 10))
-    return value
-
-total_label   = create_card(dashboard, "Total Students", "#2563eb")
-average_label = create_card(dashboard, "Class Average",  "#7c3aed")
-topper_label  = create_card(dashboard, "Highest Result", "#059669")
-pass_label    = create_card(dashboard, "Pass Rate",      "#ea580c")
-
-# -------------------- INPUT FORM --------------------
-form = ttk.LabelFrame(root, text=" Add Student Result ", padding=12)
-form.pack(fill="x", padx=20, pady=5)
-
-fields = [
-    ("Roll Number", 0),
-    ("Student Name", 1),
-    ("Python Marks", 2),
-    ("Subject 2 Marks", 3),
-    ("Subject 3 Marks", 4)
-]
-
-entries = {}
-for label, col in fields:
-    ttk.Label(form, text=label).grid(row=0, column=col, padx=7, pady=(0, 5), sticky="w")
-    entry = ttk.Entry(form, width=19)
-    entry.grid(row=1, column=col, padx=7, pady=3, sticky="ew")
-    entries[label] = entry
-
-form.columnconfigure(tuple(range(5)), weight=1)
-
-roll_entry   = entries["Roll Number"]
-name_entry   = entries["Student Name"]
-mark_entries = [
-    entries["Python Marks"],
-    entries["Subject 2 Marks"],
-    entries["Subject 3 Marks"]
-]
-
-# -------------------- STUDENT TABLE --------------------
-table_frame = ttk.LabelFrame(root, text=" Student Records ", padding=10)
-table_frame.pack(fill="both", expand=True, padx=20, pady=10)
-
-search_frame = ttk.Frame(table_frame)
-search_frame.pack(fill="x", pady=(0, 8))
-
-ttk.Label(search_frame, text="Search by name or roll number:").pack(side="left", padx=(0, 8))
-search_var = tk.StringVar()
-search_entry = ttk.Entry(search_frame, textvariable=search_var, width=30)
-search_entry.pack(side="left", padx=5)
-
-tree_frame = ttk.Frame(table_frame)
-tree_frame.pack(fill="both", expand=True)
-
-tree = ttk.Treeview(tree_frame, columns=columns, show="headings")
-
-yscroll = ttk.Scrollbar(tree_frame, orient="vertical",   command=tree.yview)
-xscroll = ttk.Scrollbar(tree_frame, orient="horizontal", command=tree.xview)
-tree.configure(yscrollcommand=yscroll.set, xscrollcommand=xscroll.set)
-
-yscroll.pack(side="right", fill="y")
-xscroll.pack(side="bottom", fill="x")
-tree.pack(fill="both", expand=True)
-
-widths = [90, 150, 100, 110, 110, 110, 75, 85]
-for col, width in zip(columns, widths):
-    tree.heading(col, text=col, command=lambda c=col: sort_by(c))
-    tree.column(col, width=width, minwidth=65, anchor="center")
-
-tree.tag_configure("pass", foreground="#047857")
-tree.tag_configure("fail", foreground="#dc2626")
-
-# -------------------- SORTING --------------------
-sort_directions = {}
-
-def sort_by(column):
-    reverse = sort_directions.get(column, False)
-
-    if column in ("Percentage", "Python", "Subject 2", "Subject 3"):
-        key_func = lambda s: float(s[columns.index(column)])
-    else:
-        key_func = lambda s: str(s[columns.index(column)]).lower()
-
-    students.sort(key=key_func, reverse=reverse)
-    sort_directions[column] = not reverse
-    refresh_table()
-
-# -------------------- DASHBOARD UPDATE --------------------
-def update_dashboard():
-    total = len(students)
-    total_label.config(text=str(total))
-
-    if total == 0:
-        average_label.config(text="0.00%")
-        topper_label.config(text="N/A")
-        pass_label.config(text="0%")
-        return
-
-    avg    = sum(s[5] for s in students) / total
-    topper = max(students, key=lambda s: s[5])
-    passed = sum(1 for s in students if s[7] == "Pass")
-
-    average_label.config(text=f"{avg:.2f}%")
-    topper_label.config(text=f"{topper[5]:.2f}%")
-    pass_label.config(text=f"{passed / total * 100:.1f}%")
-
-# -------------------- TABLE REFRESH --------------------
-def refresh_table(*args):
-    query = search_var.get().strip().lower()
-
-    for item in tree.get_children():
-        tree.delete(item)
-
-    for student in students:
-        if query and query not in str(student[0]).lower() and query not in str(student[1]).lower():
-            continue
-
-        tag = "pass" if student[7] == "Pass" else "fail"
-        display_values = list(student)
-        display_values[5] = f"{student[5]:.2f}%"
-
-        tree.insert("", "end", values=display_values, tags=(tag,))
-
-    update_dashboard()
-
-search_var.trace_add("write", refresh_table)
-
-# -------------------- ADD STUDENT --------------------
-def add_student():
-    roll = roll_entry.get().strip()
-    name = name_entry.get().strip()
-
-    if not roll or not name:
-        messagebox.showwarning("Missing Information", "Please enter both roll number and student name.")
-        return
-
-    if any(s[0].lower() == roll.lower() for s in students):
-        messagebox.showerror("Duplicate Roll Number", "This roll number already exists.")
-        return
-
-    try:
-        marks = [float(entry.get()) for entry in mark_entries]
-    except ValueError:
-        messagebox.showerror("Invalid Marks", "Enter a valid number for all three subjects.")
-        return
-
-    if any(mark < 0 or mark > 100 for mark in marks):
-        messagebox.showerror("Marks Out of Range", "Marks must be between 0 and 100.")
-        return
-
+# -------------------- HELPER FUNCTIONS --------------------
+def calculate_result(marks):
     percentage = sum(marks) / len(marks)
-
     if percentage >= 90:
         grade = "A+"
     elif percentage >= 80:
@@ -236,364 +30,329 @@ def add_student():
         grade = "D"
     else:
         grade = "F"
-
-    # Must score at least 33 in every subject to pass
     status = "Pass" if all(m >= 33 for m in marks) else "Fail"
+    return round(percentage, 2), grade, status
 
-    student = [roll, name, marks[0], marks[1], marks[2], percentage, grade, status]
-    students.append(student)
-    refresh_table()
-    clear_fields()
+def get_dataframe():
+    if not st.session_state.students:
+        return pd.DataFrame(columns=[
+            "Roll No", "Name", "Python", "Subject 2", "Subject 3",
+            "Percentage", "Grade", "Status"
+        ])
+    return pd.DataFrame(st.session_state.students)
 
-    messagebox.showinfo(
-        "Result Added",
-        f"Student: {name}\nPercentage: {percentage:.2f}%\nGrade: {grade}\nStatus: {status}"
-    )
+def update_dashboard(df):
+    total = len(df)
+    if total == 0:
+        return 0, 0.0, "N/A", 0.0
+    avg = df["Percentage"].mean()
+    topper = df["Percentage"].max()
+    pass_rate = (df["Status"] == "Pass").mean() * 100
+    return total, avg, topper, pass_rate
 
-# -------------------- LOAD DATASET --------------------
-def load_dataset():
-    path = filedialog.askopenfilename(
-        title="Select Student Dataset",
-        filetypes=[("CSV Files", "*.csv")]
-    )
-    if not path:
-        return
+# -------------------- SIDEBAR --------------------
+st.sidebar.title("⚙️ Actions")
+st.sidebar.markdown("---")
 
+# Load Sample Data
+if st.sidebar.button("📥 Load Sample Data", use_container_width=True):
+    sample = [
+        ["101", "Aarav", 89, 78, 91],
+        ["102", "Diya", 76, 82, 79],
+        ["103", "Rohan", 92, 88, 94],
+        ["104", "Ananya", 68, 75, 72],
+        ["105", "Vivaan", 95, 91, 97],
+        ["151", "Rahul Mehra", 88, 84, 90],
+        ["152", "Sneha Arora", 76, 79, 81],
+        ["153", "Akash Sharma", 65, 72, 68],
+        ["154", "Neha Gupta", 93, 91, 95],
+        ["155", "Karan Singh", 58, 62, 60],
+        ["156", "Priya Verma", 85, 87, 89],
+        ["157", "Aman Kumar", 71, 74, 69],
+        ["158", "Simran Kaur", 96, 98, 97],
+        ["159", "Rajat Jain", 49, 52, 55],
+        ["160", "Pooja Patel", 80, 82, 84],
+        ["161", "Mohit Yadav", 67, 64, 70],
+        ["162", "Riya Kapoor", 91, 89, 93],
+        ["163", "Sachin Das", 54, 58, 56],
+        ["164", "Anjali Shah", 87, 85, 88],
+        ["165", "Rohit Soni", 73, 76, 74],
+        ["166", "Kajal Mishra", 94, 92, 96],
+        ["167", "Varun Malhotra", 61, 65, 63],
+        ["168", "Tanya Agarwal", 82, 84, 80],
+        ["169", "Nitin Arora", 45, 38, 50],
+        ["170", "Muskan Sharma", 89, 91, 87],
+    ]
+    st.session_state.students = []
+    for row in sample:
+        perc, grade, status = calculate_result(row[2:])
+        st.session_state.students.append({
+            "Roll No": row[0],
+            "Name": row[1],
+            "Python": row[2],
+            "Subject 2": row[3],
+            "Subject 3": row[4],
+            "Percentage": perc,
+            "Grade": grade,
+            "Status": status
+        })
+    st.sidebar.success(f"Loaded {len(sample)} students!")
+    st.rerun()
+
+# Import CSV
+uploaded_file = st.sidebar.file_uploader("📂 Import CSV", type=["csv"])
+if uploaded_file is not None:
     try:
-        df = pd.read_csv(path)
-
+        df_up = pd.read_csv(uploaded_file)
         required = ["Roll No", "Name", "Python", "Subject 2", "Subject 3"]
-        if not all(col in df.columns for col in required):
-            messagebox.showerror("Invalid Dataset", "CSV must contain: " + ", ".join(required))
-            return
+        if not all(col in df_up.columns for col in required):
+            st.sidebar.error("CSV must contain: " + ", ".join(required))
+        else:
+            df_up = df_up[required].copy()
+            df_up["Roll No"] = df_up["Roll No"].astype(str).str.strip()
+            df_up["Name"] = df_up["Name"].astype(str).str.strip()
 
-        df = df[required].copy()
-        df["Roll No"] = df["Roll No"].astype("string").str.strip()
-        df["Name"]    = df["Name"].astype("string").str.strip()
+            if df_up["Roll No"].duplicated().any():
+                st.sidebar.error("Duplicate roll numbers in CSV.")
+            else:
+                existing = {str(s["Roll No"]).lower() for s in st.session_state.students}
+                new_students = []
+                for _, row in df_up.iterrows():
+                    if str(row["Roll No"]).lower() in existing:
+                        continue
+                    marks = [float(row["Python"]), float(row["Subject 2"]), float(row["Subject 3"])]
+                    if any(m < 0 or m > 100 for m in marks):
+                        continue
+                    perc, grade, status = calculate_result(marks)
+                    new_students.append({
+                        "Roll No": str(row["Roll No"]),
+                        "Name": str(row["Name"]),
+                        "Python": marks[0],
+                        "Subject 2": marks[1],
+                        "Subject 3": marks[2],
+                        "Percentage": perc,
+                        "Grade": grade,
+                        "Status": status
+                    })
+                st.session_state.students.extend(new_students)
+                st.sidebar.success(f"Imported {len(new_students)} students!")
+                st.rerun()
+    except Exception as e:
+        st.sidebar.error(f"Error: {e}")
 
-        if (df["Roll No"].isna().any() or df["Name"].isna().any() or
-                df["Roll No"].eq("").any() or df["Name"].eq("").any()):
-            messagebox.showerror("Invalid Data", "Roll numbers and names cannot be empty.")
-            return
-
-        if df["Roll No"].duplicated().any():
-            messagebox.showerror("Duplicate Data", "The dataset contains duplicate roll numbers.")
-            return
-
-        for col in ["Python", "Subject 2", "Subject 3"]:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-
-        marks = df[["Python", "Subject 2", "Subject 3"]]
-        if marks.isna().any().any() or ((marks < 0) | (marks > 100)).any().any():
-            messagebox.showerror("Invalid Marks", "All marks must be numbers between 0 and 100.")
-            return
-
-        existing_rolls = {str(s[0]).lower() for s in students}
-        if any(str(roll).lower() in existing_rolls for roll in df["Roll No"].tolist()):
-            messagebox.showerror("Duplicate Roll Number", "Some roll numbers already exist in the app.")
-            return
-
-        imported = []
-        for _, row in df.iterrows():
-            m1 = float(row["Python"])
-            m2 = float(row["Subject 2"])
-            m3 = float(row["Subject 3"])
-
-            percentage = (m1 + m2 + m3) / 3
-
-            if percentage >= 90:   grade = "A+"
-            elif percentage >= 80: grade = "A"
-            elif percentage >= 70: grade = "B"
-            elif percentage >= 60: grade = "C"
-            elif percentage >= 40: grade = "D"
-            else:                  grade = "F"
-
-            status = "Pass" if all(m >= 33 for m in [m1, m2, m3]) else "Fail"
-
-            imported.append([
-                str(row["Roll No"]), str(row["Name"]),
-                m1, m2, m3, percentage, grade, status
-            ])
-
-        students.extend(imported)
-        refresh_table()
-        messagebox.showinfo("Import Successful", f"Imported {len(imported)} students successfully!")
-
-    except Exception as error:
-        messagebox.showerror("Import Error", str(error))
-
-# -------------------- CLEAR INPUTS --------------------
-def clear_fields():
-    for entry in entries.values():
-        entry.delete(0, tk.END)
-    roll_entry.focus_set()
-
-# -------------------- DELETE STUDENT --------------------
-def delete_student():
-    selected = tree.selection()
-    if not selected:
-        messagebox.showwarning("No Selection", "Select a student record to delete.")
-        return
-
-    values = tree.item(selected[0], "values")
-    roll = str(values[0])
-
-    if not messagebox.askyesno("Confirm Delete", f"Delete the record for {values[1]} ({roll})?"):
-        return
-
-    students[:] = [s for s in students if str(s[0]) != roll]
-    refresh_table()
-
-# -------------------- SHOW TOPPER --------------------
-def show_topper():
-    if not students:
-        messagebox.showinfo("Topper", "No student records available.")
-        return
-
-    topper = max(students, key=lambda s: s[5])
-    messagebox.showinfo(
-        "Top Performer",
-        f"Name: {topper[1]}\nRoll Number: {topper[0]}\n"
-        f"Percentage: {topper[5]:.2f}%\nGrade: {topper[6]}\nStatus: {topper[7]}"
+# Export CSV
+if st.session_state.students:
+    df_export = get_dataframe()
+    csv = df_export.to_csv(index=False).encode("utf-8")
+    st.sidebar.download_button(
+        label="💾 Export Results (CSV)",
+        data=csv,
+        file_name="student_results.csv",
+        mime="text/csv",
+        use_container_width=True
     )
 
-# -------------------- SAVE CSV --------------------
-def save_csv():
-    if not students:
-        messagebox.showwarning("No Data", "Add students before exporting.")
-        return
+st.sidebar.markdown("---")
+if st.sidebar.button("🗑️ Clear All Data", use_container_width=True, type="secondary"):
+    st.session_state.students = []
+    st.rerun()
 
-    path = filedialog.asksaveasfilename(
-        title="Export Student Results",
-        defaultextension=".csv",
-        filetypes=[("CSV files", "*.csv")],
-        initialfile="student_results.csv"
+# -------------------- MAIN UI --------------------
+st.title("📊 Smart Student Result Analyzer")
+st.caption("Student Records  |  Result Analysis  |  Performance Reports")
+
+df = get_dataframe()
+total, avg, topper, pass_rate = update_dashboard(df)
+
+# Dashboard cards
+col1, col2, col3, col4 = st.columns(4)
+col1.metric("Total Students", total)
+col2.metric("Class Average", f"{avg:.2f}%")
+col3.metric("Highest Result", f"{topper:.2f}%" if isinstance(topper, float) else topper)
+col4.metric("Pass Rate", f"{pass_rate:.1f}%")
+
+st.markdown("---")
+
+# -------------------- ADD STUDENT FORM --------------------
+with st.expander("➕ Add Student Result", expanded=True):
+    with st.form("add_student_form", clear_on_submit=True):
+        c1, c2, c3, c4, c5 = st.columns(5)
+        roll = c1.text_input("Roll Number *")
+        name = c2.text_input("Student Name *")
+        python = c3.number_input("Python Marks", min_value=0.0, max_value=100.0, step=0.5, value=0.0)
+        sub2 = c4.number_input("Subject 2 Marks", min_value=0.0, max_value=100.0, step=0.5, value=0.0)
+        sub3 = c5.number_input("Subject 3 Marks", min_value=0.0, max_value=100.0, step=0.5, value=0.0)
+
+        submitted = st.form_submit_button("Add Student", use_container_width=True)
+
+        if submitted:
+            if not roll.strip() or not name.strip():
+                st.error("Please enter both Roll Number and Student Name.")
+            elif any(str(s["Roll No"]).lower() == roll.strip().lower() for s in st.session_state.students):
+                st.error("This roll number already exists.")
+            else:
+                marks = [python, sub2, sub3]
+                perc, grade, status = calculate_result(marks)
+                st.session_state.students.append({
+                    "Roll No": roll.strip(),
+                    "Name": name.strip(),
+                    "Python": python,
+                    "Subject 2": sub2,
+                    "Subject 3": sub3,
+                    "Percentage": perc,
+                    "Grade": grade,
+                    "Status": status
+                })
+                st.success(f"Added **{name}** | {perc}% | Grade: {grade} | {status}")
+                st.rerun()
+
+# -------------------- SEARCH + TABLE --------------------
+st.subheader("📋 Student Records")
+
+search = st.text_input("🔍 Search by name or roll number", placeholder="Type to filter...")
+
+if search:
+    mask = (
+        df["Roll No"].astype(str).str.lower().str.contains(search.lower()) |
+        df["Name"].astype(str).str.lower().str.contains(search.lower())
     )
-    if not path:
-        return
+    display_df = df[mask].copy()
+else:
+    display_df = df.copy()
 
-    try:
-        df = pd.DataFrame(students, columns=columns)
-        df["Percentage"] = df["Percentage"].round(2)
-        df.to_csv(path, index=False)
-        messagebox.showinfo("Export Successful", f"Results saved successfully:\n{path}")
-    except Exception as error:
-        messagebox.showerror("Export Error", str(error))
+# Color status
+def color_status(val):
+    color = "green" if val == "Pass" else "red"
+    return f"color: {color}; font-weight: bold"
 
-# -------------------- PERFORMANCE CHART --------------------
-def show_chart():
-    if not students:
-        messagebox.showwarning("No Data", "Add students to view the performance chart.")
-        return
+if not display_df.empty:
+    styled = display_df.style.format({
+        "Python": "{:.1f}",
+        "Subject 2": "{:.1f}",
+        "Subject 3": "{:.1f}",
+        "Percentage": "{:.2f}%"
+    }).map(color_status, subset=["Status"])
+    st.dataframe(styled, use_container_width=True, height=400)
+else:
+    st.info("No student records yet. Add some or load sample data.")
 
-    ranked = sorted(students, key=lambda s: s[5], reverse=True)
-    names = [s[1] for s in ranked]
-    percentages = [s[5] for s in ranked]
+# Delete selected
+if not display_df.empty:
+    st.markdown("#### Delete a student")
+    options = [f"{row['Roll No']} - {row['Name']}" for _, row in display_df.iterrows()]
+    to_delete = st.selectbox("Select student to delete", [""] + options)
+    if to_delete and st.button("🗑️ Delete Selected", type="primary"):
+        roll_to_del = to_delete.split(" - ")[0]
+        st.session_state.students = [
+            s for s in st.session_state.students if str(s["Roll No"]) != roll_to_del
+        ]
+        st.success("Student deleted.")
+        st.rerun()
 
-    fig, ax = plt.subplots(figsize=(10, 5))
-    bars = ax.bar(names, percentages, color="#3b82f6")
-
-    ax.set_title("Student Performance Comparison", fontsize=14, fontweight="bold")
-    ax.set_xlabel("Students")
-    ax.set_ylabel("Percentage (%)")
-    ax.set_ylim(0, 110)
-    ax.tick_params(axis="x", rotation=35)
-
-    for bar, percentage in zip(bars, percentages):
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + 1.5,
-            f"{percentage:.1f}%",
-            ha="center", fontsize=9
+# -------------------- TOPPER --------------------
+if st.session_state.students:
+    topper_row = max(st.session_state.students, key=lambda x: x["Percentage"])
+    with st.expander("🏆 Show Topper"):
+        st.success(
+            f"**Name:** {topper_row['Name']}  \n"
+            f"**Roll No:** {topper_row['Roll No']}  \n"
+            f"**Percentage:** {topper_row['Percentage']:.2f}%  \n"
+            f"**Grade:** {topper_row['Grade']}  \n"
+            f"**Status:** {topper_row['Status']}"
         )
 
-    fig.tight_layout()
-    plt.show()
-# PASTE NEW CHART FUNCTIONS HERE
-def show_pie_chart():
-    if not students:
-        return
+st.markdown("---")
 
-    passed = sum(1 for s in students if s[7] == "Pass")
-    failed = len(students) - passed
+# -------------------- CHARTS --------------------
+st.subheader("📈 Performance Charts")
 
-    plt.figure(figsize=(6,6))
-    plt.pie(
-        [passed, failed],
-        labels=["Pass", "Fail"],
-        autopct="%1.1f%%",
-        colors=["green", "red"]
-    )
-    plt.title("Pass vs Fail Analysis")
-    plt.show()
-def show_grade_chart():
-    grades = {}
+if not st.session_state.students:
+    st.info("Add students to see charts.")
+else:
+    chart_tabs = st.tabs([
+        "Performance Comparison",
+        "Pass / Fail",
+        "Grade Distribution",
+        "Subject Averages",
+        "Percentage Histogram",
+        "Top 10 Students"
+    ])
 
-    for s in students:
-        grade = s[6]
-        grades[grade] = grades.get(grade, 0) + 1
+    # 1. Performance bar
+    with chart_tabs[0]:
+        ranked = sorted(st.session_state.students, key=lambda x: x["Percentage"], reverse=True)
+        names = [s["Name"] for s in ranked]
+        percs = [s["Percentage"] for s in ranked]
+        fig, ax = plt.subplots(figsize=(12, 5))
+        bars = ax.bar(names, percs, color="#3b82f6")
+        ax.set_title("Student Performance Comparison", fontsize=14, fontweight="bold")
+        ax.set_ylabel("Percentage (%)")
+        ax.set_ylim(0, 110)
+        ax.tick_params(axis="x", rotation=45)
+        for bar, p in zip(bars, percs):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1.5,
+                    f"{p:.1f}%", ha="center", fontsize=8)
+        fig.tight_layout()
+        st.pyplot(fig)
 
-    plt.figure(figsize=(8,5))
-    plt.bar(grades.keys(), grades.values(), color="orange")
+    # 2. Pass / Fail pie
+    with chart_tabs[1]:
+        passed = sum(1 for s in st.session_state.students if s["Status"] == "Pass")
+        failed = len(st.session_state.students) - passed
+        fig, ax = plt.subplots(figsize=(6, 6))
+        ax.pie([passed, failed], labels=["Pass", "Fail"], autopct="%1.1f%%",
+               colors=["#22c55e", "#ef4444"], startangle=90)
+        ax.set_title("Pass vs Fail Analysis")
+        st.pyplot(fig)
 
-    plt.title("Grade Distribution")
-    plt.xlabel("Grade")
-    plt.ylabel("Number of Students")
+    # 3. Grade distribution
+    with chart_tabs[2]:
+        grades = {}
+        for s in st.session_state.students:
+            grades[s["Grade"]] = grades.get(s["Grade"], 0) + 1
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.bar(grades.keys(), grades.values(), color="#f97316")
+        ax.set_title("Grade Distribution")
+        ax.set_xlabel("Grade")
+        ax.set_ylabel("Number of Students")
+        st.pyplot(fig)
 
-    plt.show()
-def show_subject_chart():
-    if not students:
-        return
+    # 4. Subject averages
+    with chart_tabs[3]:
+        py_avg = np.mean([s["Python"] for s in st.session_state.students])
+        s2_avg = np.mean([s["Subject 2"] for s in st.session_state.students])
+        s3_avg = np.mean([s["Subject 3"] for s in st.session_state.students])
+        fig, ax = plt.subplots(figsize=(7, 5))
+        ax.bar(["Python", "Subject 2", "Subject 3"], [py_avg, s2_avg, s3_avg],
+               color=["#3b82f6", "#22c55e", "#ef4444"])
+        ax.set_title("Subject-wise Average Marks")
+        ax.set_ylabel("Average Marks")
+        ax.set_ylim(0, 100)
+        st.pyplot(fig)
 
-    python_avg = sum(s[2] for s in students) / len(students)
-    sub2_avg = sum(s[3] for s in students) / len(students)
-    sub3_avg = sum(s[4] for s in students) / len(students)
+    # 5. Histogram
+    with chart_tabs[4]:
+        percs = [s["Percentage"] for s in st.session_state.students]
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.hist(percs, bins=10, color="#8b5cf6", edgecolor="black")
+        ax.set_title("Percentage Distribution")
+        ax.set_xlabel("Percentage")
+        ax.set_ylabel("Number of Students")
+        st.pyplot(fig)
 
-    subjects = ["Python", "Subject 2", "Subject 3"]
-    averages = [python_avg, sub2_avg, sub3_avg]
+    # 6. Top 10
+    with chart_tabs[5]:
+        top = sorted(st.session_state.students, key=lambda x: x["Percentage"], reverse=True)[:10]
+        names = [s["Name"] for s in top]
+        percs = [s["Percentage"] for s in top]
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.bar(names, percs, color="#eab308")
+        ax.set_title("Top 10 Students")
+        ax.set_ylabel("Percentage (%)")
+        ax.tick_params(axis="x", rotation=45)
+        ax.set_ylim(0, 110)
+        fig.tight_layout()
+        st.pyplot(fig)
 
-    plt.figure(figsize=(7,5))
-    plt.bar(subjects, averages,
-            color=["blue", "green", "red"])
-
-    plt.title("Subject-wise Average Marks")
-    plt.ylabel("Average Marks")
-    plt.show()
-def show_histogram():
-    if not students:
-        return
-
-    percentages = [s[5] for s in students]
-
-    plt.figure(figsize=(8,5))
-    plt.hist(
-        percentages,
-        bins=10,
-        color="purple",
-        edgecolor="black"
-    )
-
-    plt.title("Percentage Distribution")
-    plt.xlabel("Percentage")
-    plt.ylabel("Students")
-    plt.show()
-def show_top10():
-    if not students:
-        return
-
-    top = sorted(
-        students,
-        key=lambda s: s[5],
-        reverse=True
-    )[:10]
-
-    names = [s[1] for s in top]
-    percentages = [s[5] for s in top]
-
-    plt.figure(figsize=(10,5))
-    plt.bar(names, percentages, color="gold")
-
-    plt.title("Top 10 Students")
-    plt.xticks(rotation=45)
-    plt.show()  
-# -------------------- BUTTONS --------------------
-def load_sample_data():
-    sample = [
-    ["101","Aarav",89,78,91],
-    ["102","Diya",76,82,79],
-    ["103","Rohan",92,88,94],
-    ["104","Ananya",68,75,72],
-    ["105","Vivaan",95,91,97],
-
-    ["151","Rahul Mehra",88,84,90],
-    ["152","Sneha Arora",76,79,81],
-    ["153","Akash Sharma",65,72,68],
-    ["154","Neha Gupta",93,91,95],
-    ["155","Karan Singh",58,62,60],
-    ["156","Priya Verma",85,87,89],
-    ["157","Aman Kumar",71,74,69],
-    ["158","Simran Kaur",96,98,97],
-    ["159","Rajat Jain",49,52,55],
-    ["160","Pooja Patel",80,82,84],
-    ["161","Mohit Yadav",67,64,70],
-    ["162","Riya Kapoor",91,89,93],
-    ["163","Sachin Das",54,58,56],
-    ["164","Anjali Shah",87,85,88],
-    ["165","Rohit Soni",73,76,74],
-    ["166","Kajal Mishra",94,92,96],
-    ["167","Varun Malhotra",61,65,63],
-    ["168","Tanya Agarwal",82,84,80],
-    ["169","Nitin Arora",45,38,50],
-    ["170","Muskan Sharma",89,91,87]
-]
-
-    for row in sample:
-        percentage = sum(row[2:]) / 3
-
-        if percentage >= 90:
-            grade = "A+"
-        elif percentage >= 80:
-            grade = "A"
-        elif percentage >= 70:
-            grade = "B"
-        elif percentage >= 60:
-            grade = "C"
-        elif percentage >= 40:
-            grade = "D"
-        else:
-            grade = "F"
-
-        status = "Pass" if all(m >= 33 for m in row[2:]) else "Fail"
-
-        students.append([
-            row[0], row[1],
-            row[2], row[3], row[4],
-            percentage,
-            grade,
-            status
-        ])
-
-    refresh_table()
-
-# -------------------- BUTTONS --------------------
-
-button_frame = ttk.Frame(root)
-button_frame.pack(fill="x", padx=20, pady=(0, 15))
-
-ttk.Button(button_frame, text="Add Student",
-           command=add_student).pack(side="left", padx=4)
-
-ttk.Button(button_frame, text="Clear Form",
-           command=clear_fields).pack(side="left", padx=4)
-
-ttk.Button(button_frame, text="Delete Selected",
-           command=delete_student).pack(side="left", padx=4)
-
-ttk.Button(button_frame, text="Show Topper",
-           command=show_topper).pack(side="left", padx=4)
-
-ttk.Button(button_frame, text="Performance Chart",
-           command=show_chart).pack(side="left", padx=4)
-
-ttk.Button(button_frame, text="Pass/Fail Pie",
-           command=show_pie_chart).pack(side="left", padx=4)
-
-ttk.Button(button_frame, text="Grade Analysis",
-           command=show_grade_chart).pack(side="left", padx=4)
-
-ttk.Button(button_frame, text="Subject Average",
-           command=show_subject_chart).pack(side="left", padx=4)
-
-ttk.Button(button_frame, text="Histogram",
-           command=show_histogram).pack(side="left", padx=4)
-
-ttk.Button(button_frame, text="Top 10 Students",
-           command=show_top10).pack(side="left", padx=4)
-ttk.Button(
-    button_frame,
-    text="Load Sample Data",
-    command=load_sample_data
-).pack(side="left", padx=4)
-
-# -------------------- START --------------------
-root.mainloop()
+st.markdown("---")
+st.caption("Built with Streamlit • Pass rule: ≥ 33 in every subject")
