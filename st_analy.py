@@ -11,9 +11,141 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# -------------------- CUSTOM CSS (COLORS) --------------------
+st.markdown("""
+<style>
+    /* Main background */
+    .stApp {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f8fafc 100%);
+    }
+    
+    /* Header styling */
+    .main-header {
+        background: linear-gradient(90deg, #1e3a8a, #2563eb, #3b82f6);
+        padding: 1.5rem 2rem;
+        border-radius: 16px;
+        color: white;
+        text-align: center;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 10px 25px rgba(37, 99, 235, 0.25);
+    }
+    .main-header h1 {
+        margin: 0;
+        font-size: 2.2rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+    }
+    .main-header p {
+        margin: 0.3rem 0 0 0;
+        opacity: 0.9;
+        font-size: 1rem;
+    }
+
+    /* Metric cards */
+    [data-testid="stMetric"] {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 18px 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        transition: transform 0.2s;
+    }
+    [data-testid="stMetric"]:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    }
+    [data-testid="stMetricLabel"] {
+        color: #64748b !important;
+        font-weight: 600 !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1.8rem !important;
+        font-weight: 700 !important;
+    }
+
+    /* Sidebar */
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%);
+    }
+    section[data-testid="stSidebar"] * {
+        color: white !important;
+    }
+    section[data-testid="stSidebar"] .stButton > button {
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.3);
+        color: white !important;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+    section[data-testid="stSidebar"] .stButton > button:hover {
+        background: rgba(255,255,255,0.25);
+        border-color: white;
+    }
+    section[data-testid="stSidebar"] .stDownloadButton > button {
+        background: #22c55e !important;
+        border: none !important;
+        color: white !important;
+    }
+
+    /* Form & Expander */
+    .stExpander {
+        border: 2px solid #bfdbfe;
+        border-radius: 14px;
+        background: white;
+    }
+    
+    /* Success / Error boxes */
+    .stSuccess {
+        background-color: #dcfce7;
+        border-left: 5px solid #22c55e;
+    }
+    .stError {
+        background-color: #fee2e2;
+        border-left: 5px solid #ef4444;
+    }
+
+    /* Dataframe */
+    .stDataFrame {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    }
+
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background: #e0f2fe;
+        border-radius: 10px 10px 0 0;
+        padding: 10px 18px;
+        font-weight: 600;
+        color: #1e40af;
+    }
+    .stTabs [aria-selected="true"] {
+        background: #2563eb !important;
+        color: white !important;
+    }
+
+    /* Buttons */
+    .stButton > button {
+        border-radius: 10px;
+        font-weight: 600;
+        border: none;
+        padding: 0.5rem 1.2rem;
+    }
+    
+    /* Custom colored buttons via HTML classes */
+    div.stButton > button[kind="primary"] {
+        background: linear-gradient(90deg, #2563eb, #3b82f6);
+        color: white;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # -------------------- SESSION STATE --------------------
 if "students" not in st.session_state:
-    st.session_state.students = []   # list of dicts
+    st.session_state.students = []
 
 # -------------------- HELPER FUNCTIONS --------------------
 def calculate_result(marks):
@@ -51,7 +183,7 @@ def update_dashboard(df):
     return total, avg, topper, pass_rate
 
 # -------------------- SIDEBAR --------------------
-st.sidebar.title("⚙️ Actions")
+st.sidebar.markdown("## ⚙️ Actions")
 st.sidebar.markdown("---")
 
 # Load Sample Data
@@ -96,7 +228,7 @@ if st.sidebar.button("📥 Load Sample Data", use_container_width=True):
             "Grade": grade,
             "Status": status
         })
-    st.sidebar.success(f"Loaded {len(sample)} students!")
+    st.sidebar.success(f"✅ Loaded {len(sample)} students!")
     st.rerun()
 
 # Import CSV
@@ -135,7 +267,7 @@ if uploaded_file is not None:
                         "Status": status
                     })
                 st.session_state.students.extend(new_students)
-                st.sidebar.success(f"Imported {len(new_students)} students!")
+                st.sidebar.success(f"✅ Imported {len(new_students)} students!")
                 st.rerun()
     except Exception as e:
         st.sidebar.error(f"Error: {e}")
@@ -153,43 +285,52 @@ if st.session_state.students:
     )
 
 st.sidebar.markdown("---")
-if st.sidebar.button("🗑️ Clear All Data", use_container_width=True, type="secondary"):
+if st.sidebar.button("🗑️ Clear All Data", use_container_width=True):
     st.session_state.students = []
     st.rerun()
 
-# -------------------- MAIN UI --------------------
-st.title("📊 Smart Student Result Analyzer")
-st.caption("Student Records  |  Result Analysis  |  Performance Reports")
+# -------------------- MAIN HEADER --------------------
+st.markdown("""
+<div class="main-header">
+    <h1>📊 Smart Student Result Analyzer</h1>
+    <p>Student Records  •  Result Analysis  •  Performance Reports</p>
+</div>
+""", unsafe_allow_html=True)
 
 df = get_dataframe()
 total, avg, topper, pass_rate = update_dashboard(df)
 
-# Dashboard cards
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Total Students", total)
-col2.metric("Class Average", f"{avg:.2f}%")
-col3.metric("Highest Result", f"{topper:.2f}%" if isinstance(topper, float) else topper)
-col4.metric("Pass Rate", f"{pass_rate:.1f}%")
+# -------------------- DASHBOARD CARDS --------------------
+c1, c2, c3, c4 = st.columns(4)
 
-st.markdown("---")
+with c1:
+    st.metric("👥 Total Students", total)
+with c2:
+    st.metric("📈 Class Average", f"{avg:.2f}%")
+with c3:
+    st.metric("🏆 Highest Result", f"{topper:.2f}%" if isinstance(topper, (int, float)) else topper)
+with c4:
+    st.metric("✅ Pass Rate", f"{pass_rate:.1f}%")
+
+st.markdown("")
 
 # -------------------- ADD STUDENT FORM --------------------
-with st.expander("➕ Add Student Result", expanded=True):
+with st.expander("➕  Add New Student Result", expanded=True):
     with st.form("add_student_form", clear_on_submit=True):
         c1, c2, c3, c4, c5 = st.columns(5)
-        roll = c1.text_input("Roll Number *")
-        name = c2.text_input("Student Name *")
+        roll = c1.text_input("Roll Number *", placeholder="e.g. 101")
+        name = c2.text_input("Student Name *", placeholder="Full Name")
         python = c3.number_input("Python Marks", min_value=0.0, max_value=100.0, step=0.5, value=0.0)
         sub2 = c4.number_input("Subject 2 Marks", min_value=0.0, max_value=100.0, step=0.5, value=0.0)
         sub3 = c5.number_input("Subject 3 Marks", min_value=0.0, max_value=100.0, step=0.5, value=0.0)
 
-        submitted = st.form_submit_button("Add Student", use_container_width=True)
+        submitted = st.form_submit_button("✨ Add Student", use_container_width=True, type="primary")
 
         if submitted:
             if not roll.strip() or not name.strip():
-                st.error("Please enter both Roll Number and Student Name.")
+                st.error("⚠️ Please enter both Roll Number and Student Name.")
             elif any(str(s["Roll No"]).lower() == roll.strip().lower() for s in st.session_state.students):
-                st.error("This roll number already exists.")
+                st.error("🚫 This roll number already exists.")
             else:
                 marks = [python, sub2, sub3]
                 perc, grade, status = calculate_result(marks)
@@ -203,13 +344,13 @@ with st.expander("➕ Add Student Result", expanded=True):
                     "Grade": grade,
                     "Status": status
                 })
-                st.success(f"Added **{name}** | {perc}% | Grade: {grade} | {status}")
+                st.success(f"✅ Added **{name}** → {perc}% | Grade: **{grade}** | **{status}**")
                 st.rerun()
 
 # -------------------- SEARCH + TABLE --------------------
 st.subheader("📋 Student Records")
 
-search = st.text_input("🔍 Search by name or roll number", placeholder="Type to filter...")
+search = st.text_input("🔍 Search by name or roll number", placeholder="Type to filter students...")
 
 if search:
     mask = (
@@ -220,46 +361,69 @@ if search:
 else:
     display_df = df.copy()
 
-# Color status
 def color_status(val):
-    color = "green" if val == "Pass" else "red"
-    return f"color: {color}; font-weight: bold"
+    if val == "Pass":
+        return "background-color: #dcfce7; color: #166534; font-weight: bold"
+    return "background-color: #fee2e2; color: #991b1b; font-weight: bold"
+
+def color_grade(val):
+    colors = {
+        "A+": "background-color: #dbeafe; color: #1e40af; font-weight: bold",
+        "A":  "background-color: #e0e7ff; color: #3730a3; font-weight: bold",
+        "B":  "background-color: #fef3c7; color: #92400e; font-weight: bold",
+        "C":  "background-color: #ffedd5; color: #9a3412; font-weight: bold",
+        "D":  "background-color: #fce7f3; color: #9d174d; font-weight: bold",
+        "F":  "background-color: #fee2e2; color: #991b1b; font-weight: bold",
+    }
+    return colors.get(val, "")
 
 if not display_df.empty:
-    styled = display_df.style.format({
-        "Python": "{:.1f}",
-        "Subject 2": "{:.1f}",
-        "Subject 3": "{:.1f}",
-        "Percentage": "{:.2f}%"
-    }).map(color_status, subset=["Status"])
-    st.dataframe(styled, use_container_width=True, height=400)
+    styled = (display_df.style
+              .format({
+                  "Python": "{:.1f}",
+                  "Subject 2": "{:.1f}",
+                  "Subject 3": "{:.1f}",
+                  "Percentage": "{:.2f}%"
+              })
+              .map(color_status, subset=["Status"])
+              .map(color_grade, subset=["Grade"]))
+    st.dataframe(styled, use_container_width=True, height=420)
 else:
-    st.info("No student records yet. Add some or load sample data.")
+    st.info("📭 No student records yet. Add some students or load the sample data from the sidebar.")
 
 # Delete selected
 if not display_df.empty:
-    st.markdown("#### Delete a student")
+    st.markdown("#### 🗑️ Delete a student")
     options = [f"{row['Roll No']} - {row['Name']}" for _, row in display_df.iterrows()]
-    to_delete = st.selectbox("Select student to delete", [""] + options)
-    if to_delete and st.button("🗑️ Delete Selected", type="primary"):
-        roll_to_del = to_delete.split(" - ")[0]
-        st.session_state.students = [
-            s for s in st.session_state.students if str(s["Roll No"]) != roll_to_del
-        ]
-        st.success("Student deleted.")
-        st.rerun()
+    col_del1, col_del2 = st.columns([3, 1])
+    with col_del1:
+        to_delete = st.selectbox("Select student to delete", [""] + options, label_visibility="collapsed")
+    with col_del2:
+        if to_delete and st.button("Delete", type="primary", use_container_width=True):
+            roll_to_del = to_delete.split(" - ")[0]
+            st.session_state.students = [
+                s for s in st.session_state.students if str(s["Roll No"]) != roll_to_del
+            ]
+            st.success("Student deleted successfully.")
+            st.rerun()
 
 # -------------------- TOPPER --------------------
 if st.session_state.students:
     topper_row = max(st.session_state.students, key=lambda x: x["Percentage"])
-    with st.expander("🏆 Show Topper"):
-        st.success(
-            f"**Name:** {topper_row['Name']}  \n"
-            f"**Roll No:** {topper_row['Roll No']}  \n"
-            f"**Percentage:** {topper_row['Percentage']:.2f}%  \n"
-            f"**Grade:** {topper_row['Grade']}  \n"
-            f"**Status:** {topper_row['Status']}"
-        )
+    with st.expander("🏆  View Class Topper"):
+        st.markdown(f"""
+        <div style="background: linear-gradient(90deg, #fef3c7, #fde68a); 
+                    padding: 1.2rem 1.5rem; border-radius: 12px; 
+                    border-left: 6px solid #f59e0b;">
+            <h3 style="margin:0; color:#92400e;">🥇 {topper_row['Name']}</h3>
+            <p style="margin:0.4rem 0 0 0; color:#78350f; font-size:1.05rem;">
+                Roll No: <b>{topper_row['Roll No']}</b> &nbsp;|&nbsp; 
+                Percentage: <b>{topper_row['Percentage']:.2f}%</b> &nbsp;|&nbsp; 
+                Grade: <b>{topper_row['Grade']}</b> &nbsp;|&nbsp; 
+                Status: <b>{topper_row['Status']}</b>
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -267,15 +431,15 @@ st.markdown("---")
 st.subheader("📈 Performance Charts")
 
 if not st.session_state.students:
-    st.info("Add students to see charts.")
+    st.info("Add students to unlock beautiful performance charts.")
 else:
     chart_tabs = st.tabs([
-        "Performance Comparison",
-        "Pass / Fail",
-        "Grade Distribution",
-        "Subject Averages",
-        "Percentage Histogram",
-        "Top 10 Students"
+        "📊 Performance Comparison",
+        "🟢 Pass / Fail",
+        "🏅 Grade Distribution",
+        "📚 Subject Averages",
+        "📉 Percentage Histogram",
+        "🥇 Top 10 Students"
     ])
 
     # 1. Performance bar
@@ -283,76 +447,142 @@ else:
         ranked = sorted(st.session_state.students, key=lambda x: x["Percentage"], reverse=True)
         names = [s["Name"] for s in ranked]
         percs = [s["Percentage"] for s in ranked]
-        fig, ax = plt.subplots(figsize=(12, 5))
-        bars = ax.bar(names, percs, color="#3b82f6")
-        ax.set_title("Student Performance Comparison", fontsize=14, fontweight="bold")
-        ax.set_ylabel("Percentage (%)")
-        ax.set_ylim(0, 110)
+        
+        fig, ax = plt.subplots(figsize=(12, 5.5))
+        colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(names)))
+        bars = ax.bar(names, percs, color=colors, edgecolor="white", linewidth=0.7)
+        ax.set_title("Student Performance Comparison", fontsize=15, fontweight="bold", color="#1e3a8a", pad=15)
+        ax.set_ylabel("Percentage (%)", fontsize=11)
+        ax.set_ylim(0, 112)
         ax.tick_params(axis="x", rotation=45)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.grid(axis='y', alpha=0.3)
         for bar, p in zip(bars, percs):
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1.5,
-                    f"{p:.1f}%", ha="center", fontsize=8)
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1.8,
+                    f"{p:.1f}%", ha="center", fontsize=8, fontweight="bold", color="#1e40af")
         fig.tight_layout()
-        st.pyplot(fig)
+        st.pyplot(fig, use_container_width=True)
 
     # 2. Pass / Fail pie
     with chart_tabs[1]:
         passed = sum(1 for s in st.session_state.students if s["Status"] == "Pass")
         failed = len(st.session_state.students) - passed
-        fig, ax = plt.subplots(figsize=(6, 6))
-        ax.pie([passed, failed], labels=["Pass", "Fail"], autopct="%1.1f%%",
-               colors=["#22c55e", "#ef4444"], startangle=90)
-        ax.set_title("Pass vs Fail Analysis")
-        st.pyplot(fig)
+        
+        fig, ax = plt.subplots(figsize=(7, 6))
+        wedges, texts, autotexts = ax.pie(
+            [passed, failed],
+            labels=["Pass", "Fail"],
+            autopct="%1.1f%%",
+            colors=["#22c55e", "#ef4444"],
+            startangle=90,
+            explode=(0.03, 0.03),
+            shadow=True,
+            textprops={'fontsize': 12, 'fontweight': 'bold'}
+        )
+        for autotext in autotexts:
+            autotext.set_color('white')
+            autotext.set_fontsize(13)
+        ax.set_title("Pass vs Fail Analysis", fontsize=15, fontweight="bold", color="#1e3a8a", pad=12)
+        st.pyplot(fig, use_container_width=True)
 
     # 3. Grade distribution
     with chart_tabs[2]:
         grades = {}
         for s in st.session_state.students:
             grades[s["Grade"]] = grades.get(s["Grade"], 0) + 1
-        fig, ax = plt.subplots(figsize=(8, 5))
-        ax.bar(grades.keys(), grades.values(), color="#f97316")
-        ax.set_title("Grade Distribution")
-        ax.set_xlabel("Grade")
-        ax.set_ylabel("Number of Students")
-        st.pyplot(fig)
+        
+        # Sort grades logically
+        order = ["A+", "A", "B", "C", "D", "F"]
+        sorted_grades = {k: grades[k] for k in order if k in grades}
+        
+        grade_colors = {
+            "A+": "#3b82f6", "A": "#6366f1", "B": "#f59e0b",
+            "C": "#f97316", "D": "#ec4899", "F": "#ef4444"
+        }
+        colors = [grade_colors.get(g, "#94a3b8") for g in sorted_grades.keys()]
+        
+        fig, ax = plt.subplots(figsize=(9, 5.5))
+        bars = ax.bar(sorted_grades.keys(), sorted_grades.values(), color=colors, edgecolor="white", linewidth=1.2)
+        ax.set_title("Grade Distribution", fontsize=15, fontweight="bold", color="#1e3a8a", pad=12)
+        ax.set_xlabel("Grade", fontsize=11)
+        ax.set_ylabel("Number of Students", fontsize=11)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.grid(axis='y', alpha=0.3)
+        for bar in bars:
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2, height + 0.15, f"{int(height)}",
+                    ha="center", va="bottom", fontweight="bold", color="#1e40af")
+        st.pyplot(fig, use_container_width=True)
 
     # 4. Subject averages
     with chart_tabs[3]:
         py_avg = np.mean([s["Python"] for s in st.session_state.students])
         s2_avg = np.mean([s["Subject 2"] for s in st.session_state.students])
         s3_avg = np.mean([s["Subject 3"] for s in st.session_state.students])
-        fig, ax = plt.subplots(figsize=(7, 5))
-        ax.bar(["Python", "Subject 2", "Subject 3"], [py_avg, s2_avg, s3_avg],
-               color=["#3b82f6", "#22c55e", "#ef4444"])
-        ax.set_title("Subject-wise Average Marks")
-        ax.set_ylabel("Average Marks")
-        ax.set_ylim(0, 100)
-        st.pyplot(fig)
+        
+        subjects = ["Python", "Subject 2", "Subject 3"]
+        averages = [py_avg, s2_avg, s3_avg]
+        colors = ["#3b82f6", "#22c55e", "#ef4444"]
+        
+        fig, ax = plt.subplots(figsize=(8, 5.5))
+        bars = ax.bar(subjects, averages, color=colors, edgecolor="white", linewidth=1.5, width=0.6)
+        ax.set_title("Subject-wise Average Marks", fontsize=15, fontweight="bold", color="#1e3a8a", pad=12)
+        ax.set_ylabel("Average Marks", fontsize=11)
+        ax.set_ylim(0, 105)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.grid(axis='y', alpha=0.3)
+        for bar, avg in zip(bars, averages):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1.5,
+                    f"{avg:.1f}", ha="center", fontweight="bold", fontsize=12, color="#1e40af")
+        st.pyplot(fig, use_container_width=True)
 
     # 5. Histogram
     with chart_tabs[4]:
         percs = [s["Percentage"] for s in st.session_state.students]
-        fig, ax = plt.subplots(figsize=(8, 5))
-        ax.hist(percs, bins=10, color="#8b5cf6", edgecolor="black")
-        ax.set_title("Percentage Distribution")
-        ax.set_xlabel("Percentage")
-        ax.set_ylabel("Number of Students")
-        st.pyplot(fig)
+        fig, ax = plt.subplots(figsize=(9, 5.5))
+        n, bins, patches = ax.hist(percs, bins=10, edgecolor="white", linewidth=1.2)
+        
+        # Color the bars with a purple gradient
+        for i, patch in enumerate(patches):
+            patch.set_facecolor(plt.cm.Purples(0.35 + i * 0.06))
+        
+        ax.set_title("Percentage Distribution", fontsize=15, fontweight="bold", color="#1e3a8a", pad=12)
+        ax.set_xlabel("Percentage", fontsize=11)
+        ax.set_ylabel("Number of Students", fontsize=11)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.grid(axis='y', alpha=0.3)
+        st.pyplot(fig, use_container_width=True)
 
     # 6. Top 10
     with chart_tabs[5]:
         top = sorted(st.session_state.students, key=lambda x: x["Percentage"], reverse=True)[:10]
         names = [s["Name"] for s in top]
         percs = [s["Percentage"] for s in top]
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.bar(names, percs, color="#eab308")
-        ax.set_title("Top 10 Students")
-        ax.set_ylabel("Percentage (%)")
-        ax.tick_params(axis="x", rotation=45)
-        ax.set_ylim(0, 110)
+        
+        fig, ax = plt.subplots(figsize=(11, 5.5))
+        colors = plt.cm.YlOrRd(np.linspace(0.35, 0.85, len(names)))
+        bars = ax.bar(names, percs, color=colors, edgecolor="white", linewidth=0.8)
+        ax.set_title("Top 10 Students", fontsize=15, fontweight="bold", color="#1e3a8a", pad=12)
+        ax.set_ylabel("Percentage (%)", fontsize=11)
+        ax.set_ylim(0, 112)
+        ax.tick_params(axis="x", rotation=40)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.grid(axis='y', alpha=0.3)
+        for bar, p in zip(bars, percs):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1.5,
+                    f"{p:.1f}%", ha="center", fontsize=9, fontweight="bold")
         fig.tight_layout()
-        st.pyplot(fig)
+        st.pyplot(fig, use_container_width=True)
 
 st.markdown("---")
-st.caption("Built with Streamlit • Pass rule: ≥ 33 in every subject")
+st.markdown(
+    "<p style='text-align:center; color:#64748b; font-size:0.9rem;'>"
+    "Built with ❤️ using Streamlit &nbsp;•&nbsp; Pass Rule: ≥ 33 marks in every subject"
+    "</p>",
+    unsafe_allow_html=True
+)
